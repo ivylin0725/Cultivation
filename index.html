@@ -14,6 +14,7 @@
             --accent-fire: #ff8a65;
             --accent-wood: #81c784;
             --accent-highlight: #ffca28;
+            --accent-danger: #f44336; /* 新增危險警戒的紅色 */
             --border-color: #333;
         }
 
@@ -109,8 +110,9 @@
             border-left: 4px solid var(--border-color);
         }
 
+        /* 個別區塊的左側顏色設定 */
         .result-box.water-wood { border-left-color: var(--accent-wood); }
-        .result-box.water-water { border-left-color: var(--text-muted); }
+        .result-box.danger-lose { border-left-color: var(--accent-danger); } /* 紅色警告 */
         .result-box.win-normal { border-left-color: var(--accent-highlight); }
 
         .result-title {
@@ -129,6 +131,11 @@
             font-size: 0.85rem;
             color: var(--text-muted);
             margin-top: 4px;
+        }
+
+        /* 讓被碾壓的數字特別顯示為紅色 */
+        .value-danger {
+            color: var(--accent-danger); 
         }
     </style>
 </head>
@@ -154,13 +161,14 @@
                     <div class="result-title">碾壓局 (被對方克制) 🪵</div>
                     <div class="result-desc">最壞情況，逆風極限</div>
                     <div class="result-value" id="res-secret-crush">0</div>
-                    <div class="result-desc">可擊敗對手的最高基礎戰力</div>
+                    <div class="result-desc">低於此數值，你穩贏</div>
                 </div>
-                <div class="result-box water-water">
-                    <div class="result-title">平局 (雙方同屬性) ⚖️</div>
-                    <div class="result-desc">純拼基礎面板</div>
-                    <div class="result-value" id="res-secret-tie">0</div>
-                    <div class="result-desc">可擊敗對手的最高基礎戰力</div>
+                
+                <div class="result-box danger-lose">
+                    <div class="result-title">被碾壓局 (我方克制仍輸) 💀</div>
+                    <div class="result-desc">最好情況，順風極限</div>
+                    <div class="result-value value-danger" id="res-secret-lose">0</div>
+                    <div class="result-desc">高於此數值，你必敗</div>
                 </div>
             </div>
         </div>
@@ -185,18 +193,20 @@
         function calculateAll() {
             const x = parseFloat(document.getElementById('global-base').value) || 0;
             
-            // --- 秘境計算 (雙方都有天罡陣 +15%，無水系加成) ---
-            // 碾壓 (我方被克制: 1 + 0.15 - 0.05 = 1.10, 敵方: 1 + 0.15 + 0.05 = 1.20)
+            // --- 秘境計算 (雙方都有天罡陣 +15%) ---
+            
+            // 1. 碾壓局 (我方被克制: 1.10, 敵方: 1.20)
             const crushY = x * (1.10 / 1.20);
             document.getElementById('res-secret-crush').innerText = Math.floor(crushY).toLocaleString();
             
-            // 平局 (我方平局: 1 + 0.15 = 1.15, 敵方: 1 + 0.15 = 1.15)
-            // 其實就是 1:1，為了程式一致性保留計算式
-            const tieY = x * (1.15 / 1.15);
-            document.getElementById('res-secret-tie').innerText = Math.floor(tieY).toLocaleString();
+            // 2. 被碾壓局 (我方克制對方: 1.20, 敵方被克制: 1.10)
+            // 算出來的是「敵方基礎戰力」，超過這個數字，就算我方克制對方也打不贏
+            const loseY = x * (1.20 / 1.10);
+            document.getElementById('res-secret-lose').innerText = Math.floor(loseY).toLocaleString();
 
-            // --- 打帖計算 (純基礎戰力，無陣法，無水系加成) ---
-            // 順風克制 (我方克制對方: 1 + 0.05 = 1.05, 敵方: 1 - 0.05 = 0.95)
+            // --- 打帖計算 (無陣法) ---
+            
+            // 順風克制 (我方克制對方: 1.05, 敵方: 0.95)
             const winY = x * (1.05 / 0.95);
             document.getElementById('res-challenge-win').innerText = Math.floor(winY).toLocaleString();
         }
