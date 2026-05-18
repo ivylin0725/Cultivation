@@ -14,7 +14,7 @@
             --accent-fire: #ff8a65;
             --accent-wood: #81c784;
             --accent-highlight: #ffca28;
-            --accent-danger: #f44336; /* 新增危險警戒的紅色 */
+            --accent-danger: #f44336;
             --border-color: #333;
         }
 
@@ -53,7 +53,9 @@
 
         .input-card {
             display: flex;
-            justify-content: center;
+            flex-direction: column; /* 改為垂直排列輸入框 */
+            align-items: center;
+            gap: 16px;
             padding: 20px;
         }
 
@@ -73,6 +75,9 @@
         .input-group {
             display: flex;
             align-items: center;
+            justify-content: flex-end;
+            width: 100%;
+            max-width: 400px;
         }
 
         .input-group label {
@@ -81,21 +86,62 @@
             font-weight: bold;
         }
 
-        .input-group input {
+        /* 讓輸入框和下拉選單樣式一致 */
+        .input-control {
             background-color: #2c2c2c;
             border: 1px solid #555;
             color: #fff;
-            font-size: 1.3rem;
+            font-size: 1.2rem;
             padding: 8px 12px;
             border-radius: 6px;
             width: 180px;
             outline: none;
             transition: border-color 0.3s;
+            box-sizing: border-box;
         }
 
-        .input-group input:focus {
+        .input-control:focus {
             border-color: var(--accent-highlight);
         }
+
+        /* 秘境專屬的表格樣式 */
+        .styled-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .styled-table th, .styled-table td {
+            padding: 12px 15px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .styled-table th {
+            background-color: #252525;
+            color: var(--text-muted);
+            font-size: 0.95rem;
+            font-weight: normal;
+        }
+
+        .styled-table tbody tr:hover {
+            background-color: #2a2a2a; /* 滑鼠移過去會有高亮效果 */
+        }
+
+        .styled-table td {
+            font-size: 1.4rem;
+            font-weight: bold;
+            color: #fff;
+        }
+
+        /* 表格內的第一個直行（對方天罡等級）小字體 */
+        .styled-table td.col-level {
+            font-size: 1.1rem;
+            color: var(--accent-highlight);
+        }
+
+        .value-safe { color: var(--accent-wood); }
+        .value-danger { color: var(--accent-danger); }
 
         .results-grid {
             display: grid;
@@ -110,33 +156,10 @@
             border-left: 4px solid var(--border-color);
         }
 
-        /* 個別區塊的左側顏色設定 */
-        .result-box.water-wood { border-left-color: var(--accent-wood); }
-        .result-box.danger-lose { border-left-color: var(--accent-danger); } /* 紅色警告 */
         .result-box.win-normal { border-left-color: var(--accent-highlight); }
-
-        .result-title {
-            font-size: 1rem;
-            margin-bottom: 8px;
-            color: #bbb;
-        }
-
-        .result-value {
-            font-size: 1.8rem;
-            font-weight: bold;
-            color: #fff;
-        }
-        
-        .result-desc {
-            font-size: 0.85rem;
-            color: var(--text-muted);
-            margin-top: 4px;
-        }
-
-        /* 讓被碾壓的數字特別顯示為紅色 */
-        .value-danger {
-            color: var(--accent-danger); 
-        }
+        .result-title { font-size: 1rem; margin-bottom: 8px; color: #bbb; }
+        .result-value { font-size: 1.8rem; font-weight: bold; color: #fff; }
+        .result-desc { font-size: 0.85rem; color: var(--text-muted); margin-top: 4px; }
     </style>
 </head>
 <body>
@@ -147,72 +170,12 @@
         <div class="card input-card">
             <div class="input-group">
                 <label for="global-base">我的基礎戰力：</label>
-                <input type="number" id="global-base" value="10000" min="0">
+                <input type="number" id="global-base" class="input-control" value="10000" min="0">
             </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>秘境</h2>
-            </div>
-
-            <div class="results-grid">
-                <div class="result-box water-wood">
-                    <div class="result-title">碾壓局 (被對方克制) 🪵</div>
-                    <div class="result-desc">最壞情況，逆風極限</div>
-                    <div class="result-value" id="res-secret-crush">0</div>
-                    <div class="result-desc">低於此數值，你穩贏</div>
-                </div>
-                
-                <div class="result-box danger-lose">
-                    <div class="result-title">被碾壓局 (我方克制仍輸) 💀</div>
-                    <div class="result-desc">最好情況，順風極限</div>
-                    <div class="result-value value-danger" id="res-secret-lose">0</div>
-                    <div class="result-desc">高於此數值，你必敗</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="card">
-            <div class="card-header">
-                <h2>打帖</h2>
-            </div>
-
-            <div class="results-grid">
-                <div class="result-box win-normal">
-                    <div class="result-title">克制局 (我方克制對方) ⚔️</div>
-                    <div class="result-desc">屬性優勢加成</div>
-                    <div class="result-value" id="res-challenge-win">0</div>
-                    <div class="result-desc">可越級擊敗的最高對手</div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <script>
-        function calculateAll() {
-            const x = parseFloat(document.getElementById('global-base').value) || 0;
-            
-            // --- 秘境計算 (雙方都有天罡陣 +15%) ---
-            
-            // 1. 碾壓局 (我方被克制: 1.10, 敵方: 1.20)
-            const crushY = x * (1.10 / 1.20);
-            document.getElementById('res-secret-crush').innerText = Math.floor(crushY).toLocaleString();
-            
-            // 2. 被碾壓局 (我方克制對方: 1.20, 敵方被克制: 1.10)
-            // 算出來的是「敵方基礎戰力」，超過這個數字，就算我方克制對方也打不贏
-            const loseY = x * (1.20 / 1.10);
-            document.getElementById('res-secret-lose').innerText = Math.floor(loseY).toLocaleString();
-
-            // --- 打帖計算 (無陣法) ---
-            
-            // 順風克制 (我方克制對方: 1.05, 敵方: 0.95)
-            const winY = x * (1.05 / 0.95);
-            document.getElementById('res-challenge-win').innerText = Math.floor(winY).toLocaleString();
-        }
-
-        document.getElementById('global-base').addEventListener('input', calculateAll);
-        calculateAll();
-    </script>
-</body>
-</html>
+            <div class="input-group">
+                <label for="my-tiangang">我的天罡等級：</label>
+                <select id="my-tiangang" class="input-control">
+                    <option value="0.03">等級 1 (+3%)</option>
+                    <option value="0.05">等級 2 (+5%)</option>
+                    <option value="0.07">等級 3 (+7%)</option>
+                    <option value="0.10">
